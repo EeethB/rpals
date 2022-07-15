@@ -23,7 +23,7 @@ gt_tbl <- read_csv("mems.csv") %>%
 
 ui <- fluidPage(
   useShinyjs(),
-  uiOutput("pic_path_out"),
+  uiOutput("pic_path_out", value = "rpals_logo.png"),
   fluidRow(imageOutput("pic"), style = "height:510px; text-align: center;"),
   # fluidRow(numericInput("timeout", "Picture timer", )),
   fluidRow(gt_output(outputId = "friends"))
@@ -34,7 +34,7 @@ server <- function(input,
                    output,
                    session) {
   output$pic_path_out <- renderUI({
-    ui_pic_path <- textInput("pic_path", "", value = "ali-rose.jpg")
+    ui_pic_path <- textInput("pic_path", "", value = "rpals_logo.png")
     shinyjs::hidden(ui_pic_path)
   })
   
@@ -45,10 +45,7 @@ server <- function(input,
   
   output$pic <-
     renderImage({
-      pic_path_value <-
-        if_else(is.null(input$pic_path),
-                "rpals_logo.png",
-                input$pic_path)
+      pic_path_value <- input$pic_path
       list(
         src = str_glue("./www/{pic_path_value}"),
         height = "500px",
