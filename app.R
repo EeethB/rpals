@@ -7,40 +7,13 @@ library(gtExtras)
 library(shinyauthr)
 library(rstudioapi)
 
-# Here is a Shiny app (contained within
-# a single file) that (1) prepares a
-# gt table, (2) sets up the `ui` with
-# `gt_output()`, and (3) sets up the
-# `server` with a `render_gt()` that
-# uses the `gt_tbl` object as the input
-# expression
-
-action_button_gt <- function(value, inputid, ...){
-  as.character(
-    shiny::actionButton(
-      paste0(value, inputid),
-      ...
-    )
-  ) %>% 
-    gt::html()
-}
-
-open_user_file <- function(text, user, session_temp_dir) {
-  file_path <- str_glue("{session_temp_dir}\\\\@{user}.R")
-  
-  write_file(text, file_path)
-  
-  rstudioapi::navigateToFile(file_path)
-}
-
-df_mems <- read_csv("mems.csv")
-
-df_creds <- read_csv("creds.csv")
+source("utils.R")
+source("read_data.R")
 
 ui <- fluidPage(
   useShinyjs(),
   
-  miniTitleBar(img(src = "rpals_logo.png", height="30px")),
+  miniTitleBar(img(src = "rpals_logo.png", height = "30px")),
   
   fluidRow(
     loginUI(id = "login"),
@@ -49,14 +22,12 @@ ui <- fluidPage(
   ),
   
   sidebarLayout(
-    sidebarPanel(
-      logoutUI(id = "logout"),
-      width = 3
-    ),
+    sidebarPanel(logoutUI(id = "logout"),
+                 width = 3),
     
     mainPanel(
-      gt_output(outputId = "friends"),
-      textOutput(outputId = "uname_pwd"),
+      gt::gt_output(outputId = "friends"),
+      textOutput(outputId = "gt_tbl_button"),
       width = 9
     )
     
@@ -74,22 +45,50 @@ server <- function(input,
     shinyjs::hidden(ui_pic_path)
   })
   
-  gt_tbl <- shiny::reactive({
+  gt_tbl <- reactive({
     df_mems %>%
-      mutate(
-        snip = "far fa-file-code",
-        button = map(uname, .f = ~action_button_gt(.x, "_button",label = fontawesome::fa("far fa-file-code", stroke = "grey")))
-      ) %>%
+      mutate(button = map(
+               uname,
+               .f = ~ action_button_gt(
+                 .x,
+                 "_button",
+                 label = fontawesome::fa("far fa-file-code", stroke = "grey", height = "30px")
+               )
+             )) %>%
       gt() %>%
-      gt_fa_column(snip, palette = "grey") %>% 
       text_transform(
         locations = cells_body(columns = c("pic")),
         fn = function(x) {
           paste0("<img id=", x, " src=", x, " height=30px></img>")
-          # web_image(url = x)
         }
       )
   })
+  
+  observe({
+    walk(gt_tbl()$`_data`$uname,
+         ~ shinyjs::onclick(paste0(.x, "_button"), {
+           # updateTextgt_tbl()$`_data`$buttonInput(inputId = "pic_path", value = .x)
+           open_user_file(paste("#", .x), .x, tempdir())
+         }))
+  })
+  
+  # observe({
+  #   buttons <- gt_tbl()$`_data`$button %>% 
+  #     keep(~str_detect(.x, "skyetetra_button"))
+  #   
+  #   walk(list(input[buttons]), observeEvent, handlerExpr = {
+  #     open_user_file <- function(text, user, session_temp_dir) {
+  #       file_path <- str_glue("{session_temp_dir}\\\\@{user}.R")
+  #       
+  #       write_file(text, file_path)
+  #       
+  #       rstudioapi::navigateToFile(file_path)
+  #     }
+  #     open_user_file("# Jacqueline's code", "skyetetra", tempdir())
+  #   }) 
+  # })
+  
+  # observeEvent(input$skyetetra_button, open_user_file("# Jacqueline's code", "skyetetra", tempdir()))
   
   output$friends <-
     render_gt({
@@ -111,26 +110,28 @@ server <- function(input,
       )
     }, deleteFile = FALSE)
   
-  # Walk the gt table columns pic and snip and make an onclick method
-  reactive({walk(c(gt_tbl()$`_data`$pic),
-       ~ shinyjs::onclick(.x, {
-         updateTextInput(inputId = "pic_path", value = .x)
-         # open_user_file(.x, ".x", tempdir())
-       }))})
-  # 
+  # Walk the gt table column pic and make an onclick method
+  observe({
+    walk(c(gt_tbl()$`_data`$pic),
+         ~ shinyjs::onclick(.x, {
+           updateTextInput(inputId = "pic_path", value = .x)
+           # open_user_file(.x, ".x", tempdir())
+         }))
+  })
+  #
   # walk(c(gt_tbl$`_data`$snip),
   #      ~ shinyjs::onclick(.x, {
   #        open_user_file(".x", ".x", tempdir())
   #      }))
-
+  
   shinyjs::onclick("pic", {
     req(credentials()$user_auth)
     updateTextInput(inputId = "pic_path", value = "rpals_logo.png")
   })
-
-  shinyjs::onclick("td.gt_row.gt_left", {
-    open_user_file(.x, "text_cols", tempdir())
-  })
+  
+  # shinyjs::onclick("td.gt_row.gt_left", {
+  #   open_user_file(.x, "text_cols", tempdir())
+  # })
   
   credentials <- shinyauthr::loginServer(
     id = "login",
