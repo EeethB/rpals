@@ -1,43 +1,71 @@
-library(shiny)
-library(miniUI)
-library(leaflet)
-library(ggplot2)
-library(shinyjs)
-library(gt)
+library(magrittr)
 
-ui <- miniPage(
+source("utils.R")
+source("read_data.R")
+
+ui <- miniUI::miniPage(
   
-  useShinyjs(),
+  shinyjs::useShinyjs(),
   
-  miniTitleBar(img(src = "rpals_logo.png", height = "30px")),
-  
-  miniTabstripPanel(
+  miniUI::miniTitleBar(
     
-    miniTabPanel("Parameters", icon = icon("sliders"),
-                 miniContentPanel(
-                   sliderInput("year", "Year", 1978, 2010, c(2000, 2010), sep = "")
-                 )
+    title = shiny::img(src = "rpals_logo.png", height = "30px"),
+    
+    right = shinyauthr::logoutUI(id = "logout")
+    
+  ),
+  
+  miniUI::miniTabstripPanel(
+    
+    miniUI::miniTabPanel(
+      
+      title = "Log In",
+      
+      icon = shiny::icon("fas fa-sign-in-alt"),
+      
+      miniUI::miniContentPanel(
+        
+        shinyauthr::loginUI(id = "login")
+      
+      )
+      
     ),
     
-    miniTabPanel("Visualize", icon = icon("area-chart"),
-                 miniContentPanel(
-                   plotOutput("cars", height = "100%")
-                 )
-    ),
+    miniUI::miniTabPanel(
+      
+      title = "Feed",
+      
+      icon = shiny::icon("table"),
+      
+      miniUI::miniContentPanel(
+        
+        gt::gt_output("pals"),
+        
+        shiny::actionButton("reload_pals", "Refresh",
+                          icon = shiny::icon("fas fa-refresh")),
+        
+        shiny::actionButton("story-current", "Story from current script",
+                          icon = shiny::icon("far fa-file-code")),
+        
+        shiny::actionButton("story-clip", "Story from Clipboard",
+                          icon = shiny::icon("far fa-clipboard-list")),
+        
+        # shiny::fileInput("story-file")
+        
+      )
     
-    miniTabPanel(NULL, icon = miniButtonBlock(actionButton("logoff", "Log Off")),
-                 miniContentPanel(padding = 0,
-                                  leafletOutput("map", height = "100%")
-                 ),
-                 miniButtonBlock(
-                   actionButton("resetMap", "Reset")
-                 )
-    ),
+    ), 
     
-    miniTabPanel("Feed", icon = icon("table"),
-                 miniContentPanel(
-                   gt_output(outputId = "friends")
-                 )
+    miniUI::miniTabPanel(
+      
+      title = "Story",
+      
+      icon = shiny::icon("far fa-file-code"),
+      
+      miniUI::miniContentPanel(
+                   
+      )
+      
     )
     
   )
@@ -45,27 +73,59 @@ ui <- miniPage(
 )
 
 server <- function(input, output, session) {
-  output$cars <- renderPlot({
-    require(ggplot2)
-    ggplot(cars, aes(speed, dist)) + geom_point()
-  })
   
-  output$map <- renderLeaflet({
-    force(input$resetMap)
+  # Auth ----------------------------------------------------------------------
+  credentials <- shinyauthr::loginServer(
+    id = "login",
+    data = df_creds,
+    user_col = user,
+    pwd_col = password,
+    log_out = reactive(logout_init())
+  )
+  
+  logout_init <- shinyauthr::logoutServer(
+    id = "logout",
+    active = reactive(credentials()$user_auth)
+  )
+  
+  # Other ---------------------------------------------------------------------
+  df_pals <- eventReactive(input$reload_pals, {
     
-    leaflet(quakes, height = "100%") %>% addTiles() %>%
-      addMarkers(lng = ~long, lat = ~lat)
+    read_pals() %>%
+      dplyr::mutate(button = purrr::map(
+        uname,
+        .f = ~ action_button_gt(
+          .x,
+          "_button",
+          label = fontawesome::fa("far fa-file-code", stroke = "grey", height = "30px")
+        )
+      ))
+    
   })
   
-  observeEvent(input$logoff, stopApp(TRUE))
-  
-  output$table <- DT::renderDataTable({
-    diamonds
+  # Render pals gt, including subbing in PFPs ---------------------------------
+  output$pals <- gt::render_gt({
+    
+    gt::gt(df_pals()) %>%
+      gt::text_transform(
+        locations = gt::cells_body(columns = c("pic")),
+        fn = function(x) {
+          paste0("<img id=", x, " src=", x, " height=30px></img>")
+        }
+      )
+    
   })
   
-  observeEvent(input$done, {
-    stopApp(TRUE)
+  # Apply an onclick method to the `button` column in the pals gt -------------
+  shiny::observe({
+    purrr::walk(
+      df_pals()$uname,
+      ~ shinyjs::onclick(paste0(.x, "_button"), {
+        open_user_file(paste0("# ", .x, "'s code"), .x, tempdir())
+      })
+    )
   })
+  
 }
 
-shinyApp(ui, server)
+shiny::shinyApp(ui, server)
