@@ -8,7 +8,7 @@ If you like {rpals} and would like to support its development, you can
 
 ## Installation
 
-I haven't even made this a package yet, so you can play around with {rpals} by downloading or cloning this repository and running app.R with RStudio. It is designed to be run from RStudio and viewed in the Viewer pane. It may break if run in other ways :shrug:
+I haven't even made this a package yet, so you can play around with {rpals} by downloading or cloning this repository and running app2.R with RStudio. It is designed to be run from RStudio and viewed in the Viewer pane. It may break if run in other ways :shrug:
 
 ## Current state
 
