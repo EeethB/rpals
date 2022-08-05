@@ -1,3 +1,5 @@
+![](www/rpals_logo.png)
+
 # Stories are here for RStudio! :tada:
 
 Inspired by Ben Awad's [VS Code Stories](https://github.com/ide-stories/vscode-stories) (And because people sharing code makes me happy :blush:), {rpals} seeks to be an ultra-low-barrier-to-entry space for people to share their code with the R :earth_africa:
