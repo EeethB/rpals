@@ -10,8 +10,8 @@ read_user_story <- function(uname, ts) {
     purrr::pluck("story")
 }
 
-open_user_file <- function(text, user, session_temp_dir) {
-  file_path <- stringr::str_glue("{session_temp_dir}\\\\@{user}.R")
+open_user_file <- function(text, user, file_ext, session_temp_dir) {
+  file_path <- stringr::str_glue("{session_temp_dir}\\\\@{user}{file_ext}")
   
   readr::write_file(text, file_path)
   
@@ -31,4 +31,3 @@ read_stories <- function(story_index) {
 read_creds <- function() {
   readr::read_csv("creds.csv")
 }
-
