@@ -39,25 +39,3 @@ Future state is the biggest mess of the whole project! :laughing: I have all kin
 2.  Text and video chatting? I want this to connect people!
 3.  Plush toys! (And other merch) Some kind of "hugging Rs" where you keep one and send one to a pal
 4.  Styling: I want the whole app to channel the energy of the logo - Soft, round, bright, and happy! But I currently don't know nearly enough CSS to pull this off
-
-<style>
-img { 
-  padding: 20px; 
-  height: 400px;
-  width: auto;
-}
-</style>
-
-<script>
-// make an HTML element and button that will show <img src="http://edgecats.net/"/> when you click it
-
-document.getElementById('catButton').onclick = function showSomeCats() {
-  document.getElementById('catBox').innerHTML = ('<img src="http://edgecats.net/' + Math.random() + '"/>');
-};
-</script>
-
-<!-- element for onclick event -->
-<button id="catButton">Cat Generator</button>
-<!-- element destination for cat gifs -->
-<div id="catBox"></div>
-
