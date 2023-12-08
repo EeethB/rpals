@@ -51,6 +51,12 @@ ui <- miniUI::miniPage(
           "refresh_stories",
           "Refresh",
           icon = shiny::icon("fas fa-refresh")
+        ),
+        
+        shiny::actionButton(
+          "next_page",
+          "Next",
+          icon = shiny::icon("fas fa-arrow-right")
         )
         
       )
@@ -90,13 +96,13 @@ server <- function(input, output, session) {
     
   })
   
-  # Other ---------------------------------------------------------------------
-  stories_index <- 0
+  page_number <- shiny::reactiveVal(1)
   
-  df_stories <- shiny::eventReactive(input$refresh_stories, {
-    stories_index <- stories_index + 1
-    
-    read_stories(stories_index) %>%
+  shiny::observeEvent(input$refresh_stories, page_number(1))
+  shiny::observeEvent(input$next_page, page_number(page_number() + 1))
+  
+  # Other ---------------------------------------------------------------------
+  df_stories <- shiny::reactive(read_stories(page_number()) %>%
       dplyr::left_join(read_pals(), by = "uname") %>%
       dplyr::mutate(button = purrr::map2(
         .x = uname,
@@ -110,8 +116,7 @@ server <- function(input, output, session) {
                                   height = "30px")
         )
       ))
-    
-  })
+  )
   
   # Render pals gt, including subbing in PFPs ---------------------------------
   output$stories <- gt::render_gt({
@@ -175,7 +180,7 @@ server <- function(input, output, session) {
       shiny::actionButton(
         "story_clip",
         "Story from Clipboard",
-        icon = shiny::icon("far fa-clipboard-list")
+        icon = shiny::icon("fas fa-clipboard-list")
       ),
       
       # shiny::fileInput("story-file")
